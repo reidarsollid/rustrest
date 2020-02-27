@@ -1,0 +1,14 @@
+[package]
+name = "rustrest"
+version = "0.1.0"
+authors = ["Reidar Sollid <rsollid@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+tower-web = "0.3.7"
+tower-web-macros = "0.3.5"
+serde = "1.0.104"
+serde_json = "1.0.48"
+chrono = "0.4.10"
