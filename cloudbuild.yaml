@@ -1,0 +1,11 @@
+# Building on Google Cloud
+
+steps:
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/rustrest/rustrest-image', '.']
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/rustrest/rustrest-image']
+    env:
+      - 'CLOUDSDK_COMPUTE_ZONE=europe-north1-a'
+      - 'CLOUDSDK_CONTAINER_CLUSTER=rustrest-cluster'
+timeout: 1800s

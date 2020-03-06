@@ -8,6 +8,8 @@ extern crate tower_web;
 use chrono::{DateTime, Utc};
 use tower_web::ServiceBuilder;
 
+mod repo;
+
 #[derive(Clone, Debug)]
 struct JsonResource;
 
@@ -61,10 +63,13 @@ fn get_rfc7231_date_time() -> String {
 }
 
 fn main() {
+    repo::connect();
+
     let addr = "0.0.0.0:5000".parse().expect("Invalid address");
     println!("Listening on http://{}", addr);
     ServiceBuilder::new()
         .resource(JsonResource)
         .run(&addr)
         .unwrap();
+
 }
