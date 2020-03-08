@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rustrest
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rustrest-app
+  template:
+    metadata:
+      labels:
+        app: rustrest-app
+    spec:
+      containers:
+        - name: rust-container
+          image: gcr.io/rustrest/rustrest-image
+          resources:
+            limits:
+              memory: "128Mi"
+              cpu: "500m"
+          ports:
+            - containerPort: 5000

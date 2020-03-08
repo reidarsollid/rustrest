@@ -5,6 +5,13 @@ steps:
     args: ['build', '-t', 'gcr.io/rustrest/rustrest-image', '.']
   - name: 'gcr.io/cloud-builders/docker'
     args: ['push', 'gcr.io/rustrest/rustrest-image']
+    # deploy container image to GKE
+  - name: 'gcr.io/cloud-builders/kubectl'
+    id: Deploy
+    args:
+      - 'apply'
+      - '-f'
+      - 'gkedeployment.yaml'
     env:
       - 'CLOUDSDK_COMPUTE_ZONE=europe-north1-a'
       - 'CLOUDSDK_CONTAINER_CLUSTER=rustrest-cluster'
