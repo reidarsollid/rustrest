@@ -1,75 +1,45 @@
-#[macro_use]
-extern crate chrono;
-#[macro_use]
-extern crate serde_json;
-#[macro_use]
-extern crate tower_web;
+use mongodb::bson::Document;
+use mongodb::Client;
+use poem::listener::TcpListener;
+use poem::{EndpointExt, Route, Server};
+use poem_openapi::{param::Query, payload::PlainText, OpenApi, OpenApiService};
 
-use chrono::{DateTime, Utc};
-use tower_web::ServiceBuilder;
-
-mod repo;
-
-#[derive(Clone, Debug)]
-struct JsonResource;
-
-#[derive(Debug, Response)]
-struct MyResponse {
-    foo: usize,
-    bar: &'static str,
-}
-
-#[derive(Debug, Response)]
-#[web(status = "201")]
-struct CreateResponse {
-    message: &'static str,
-
-    #[web(header)]
-    date: String,
-}
-
-impl_web! {
-    impl JsonResource {
-        #[get("/")]
-        fn hello_world(&self) -> Result<serde_json::Value, ()> {
-            Ok(json!({
-                "message": "hello world",
-            }))
-        }
-
-        #[get("/custom_type")]
-        #[content_type("application/json")]
-        fn custom_type(&self) -> Result<MyResponse, ()> {
-            Ok(MyResponse {
-                foo: 123,
-                bar: "hello world"
-            })
-        }
-
-        #[post("/create")]
-        #[content_type("application/json")]
-        fn create(&self) -> Result<CreateResponse, ()> {
-            Ok(CreateResponse {
-                message: "created",
-                date: get_rfc7231_date_time(),
-            })
+#[tokio::main]
+async fn main() -> std::io::Result<()> {
+    unsafe {
+        if std::env::var_os("RUST_LOG").is_none() {
+            std::env::set_var("RUST_LOG", "poem=debug");
         }
     }
-}
+    tracing_subscriber::fmt::init();
 
-fn get_rfc7231_date_time() -> String {
-    let now: DateTime<Utc> = Utc::now();
-    return now.to_rfc2822();
-}
+    let mongo_client = Client::with_uri_str("localhost:8080").await.expect("REASON").
+        database("MyMongo");
+    let docs: mongodb::Collection<Document> = mongo_client.collection("docs");
+    struct Api;
 
-fn main() {
-    repo::connect();
+    #[OpenApi]
+    impl Api {
+        #[oai(path = "/hello", method = "get")]
+        async fn index(&self, name: Query<Option<String>>) -> PlainText<String> {
+            match name.0 {
+                Some(name) => PlainText(format!("hello, {name}!")),
+                None => PlainText("hello!".to_string()),
+            }
+        }
+    }
 
-    let addr = "0.0.0.0:5000".parse().expect("Invalid address");
-    println!("Listening on http://{}", addr);
-    ServiceBuilder::new()
-        .resource(JsonResource)
-        .run(&addr)
-        .unwrap();
+    let api_service =
+        OpenApiService::new(Api, "Hello World", "1.0").server("http://localhost:3000/api");
+    let swagger_ui = api_service.swagger_ui();
 
+    Server::new(TcpListener::bind("127.0.0.1:8080"))
+        .run(
+            Route::new()
+                .nest("/api/push-registration", api_service)
+                .nest("/swagger", swagger_ui)
+                //.nest("/api-spec", open_api_spec)
+                .data(docs),
+        )
+        .await
 }
